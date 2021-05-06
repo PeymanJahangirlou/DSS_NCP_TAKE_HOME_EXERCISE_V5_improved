@@ -1,9 +1,13 @@
+
+
 /*
  * Disney  DSS-NCP Take Home Exercise v5
  *
  * @author Peyman Jahangirlou
  * @brief Main function.
  */
+
+//#define DEBUG
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -28,12 +32,12 @@
 using namespace std;
 
 // Global variables
-const int WIDTH = 1024;
-const int HEIGHT = 800;
-pair<int, int> CurrPosition = std::make_pair(0, 0); // sets to moviesGrid[0][0];
+int WIDTH = 1020;
+int HEIGHT = 800;
+pair<int, int> SelectedMovie; // sets to moviesGrid[0][0];
 
 unsigned int texture[1];
-unordered_map<int,vector<std::shared_ptr<Movie>>> moviesGrid;
+JsonParser::MovieContainer moviesGrid;
 
 typedef unordered_set<std::shared_ptr<Movie>>::iterator MovieSetIterator;
 JsonParser::MovieContainer trendingMovieMap{};
@@ -42,6 +46,8 @@ JsonParser::MovieContainer becauseYouSetMap{};
 MovieSetIterator trendingMovieIter;
 MovieSetIterator personalizeCuratedMoviesIter;
 MovieSetIterator  becauseYouSetMoviesIter;
+
+JsonParser::MovieContainer moviesMap{};
 
 /** @brief sets up texture **/
 void setUpTexture(std::shared_ptr<MovieImage> movieImage_ptr)
@@ -77,31 +83,6 @@ void loadTexture(const std::string & imgUrl)
    movieImage_ptr.reset();
 }
 
-/** @brief creates 3 * 3 Grids then add movie image  plus 3 arrow triangles  **/
-void createSquares(const float margin,
-				   const float squareWidth,
-				   const float topY,
-				   const float bottomY,
-				   const int   row,
-			       unordered_set<std::shared_ptr<Movie>>::iterator iter )
-{
-		float x_start = 0.0;
-		float x_end = squareWidth;
-		while ( x_end < WIDTH  ) {
-			moviesGrid[row].push_back(*iter);
-			loadTexture(iter->get()->imgUrl()); iter++;
-			glBegin(GL_POLYGON);
-				glTexCoord2f(0.0,0.0); glVertex3f(x_start+margin, bottomY, 0.0);  // left bottom
-				glTexCoord2f(1.0,0.0); glVertex3f(x_end, bottomY, 0.0);  // right bottom
-				glTexCoord2f(1.0,1.0); glVertex3f(x_end, topY, 0.0);  // right top
-				glTexCoord2f(0.0,1.0); glVertex3f(x_start+margin, topY, 0.0);  // left top
-			glEnd();
-			x_start = x_end;
-			x_end += squareWidth;
-			
-		}// end while loop.
-}
-
 /** @brief draw text on the screen **/
 void renderBitmapString(float x, float y, void* font, const string& text)
 {
@@ -110,6 +91,53 @@ void renderBitmapString(float x, float y, void* font, const string& text)
 	for (auto ch : text)
 		glutBitmapCharacter(font, ch);
 }
+
+const pair<float, float> SquareSize = std::make_pair(200.0, 170.0);
+void drawMovieBoxes()
+{
+	const int colMargin{ 10 };
+	const int rowMargin{ 20 };
+	int col_start = colMargin;
+	int row_start = rowMargin;
+	float col_space{ 50 };
+	float rowExtraSpace{ 40 };
+	int row = 0;
+	int col = 0;
+	for (; col_start < WIDTH; col_start += SquareSize.first) {
+		if ((col_start + SquareSize.first) >= WIDTH) {
+			moviesMap[row][col-1]->setIsLastItemOnViewPort(true);
+			row_start += SquareSize.second;
+			row++;
+			col_start = colMargin;
+			col = 0;
+
+		}
+		if ((row_start + SquareSize.second) >= HEIGHT)
+			break;
+		if (col_start == colMargin) {
+			renderBitmapString( col_start,
+								row_start + SquareSize.second + 20,
+								GLUT_BITMAP_TIMES_ROMAN_24,
+								moviesMap[row].categoryName());
+		}
+		if (col == 0)
+			moviesMap[row][col]->setIsFirstItemOnViewPort(true);
+
+		loadTexture(moviesMap[row][col]->imgUrl());
+		glBegin(GL_POLYGON);
+		glTexCoord2f(0.0, 0.0);
+		glVertex2f((float)col_start + colMargin, (float)row_start + rowMargin + rowExtraSpace );
+		glTexCoord2f(1.0, 0.0);
+		glVertex2f((float)col_start + SquareSize.first, (float)row_start + rowMargin + rowExtraSpace);
+		glTexCoord2f(1.0, 1.0);
+		glVertex2f((float)col_start + SquareSize.first, (float)row_start + SquareSize.second );
+		glTexCoord2f(0.0, 1.0);
+		glVertex2f((float)col_start + colMargin, (float)row_start + SquareSize.second );
+		glEnd();
+		col++;
+	}
+}
+
 
 
 static bool draw{ true }; // draw function gets called once
@@ -122,35 +150,8 @@ void display(void)
 	draw = false;
     glClearColor(0.0f, 0.05f, 0.13f,1.0f);         // disney plus background
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
-
-	renderBitmapString(20.0f, 700.0f, GLUT_BITMAP_TIMES_ROMAN_24, "Trending");
-	renderBitmapString(20.0f, 480.0f, GLUT_BITMAP_TIMES_ROMAN_24, "Personalized Curated Movies");
-	renderBitmapString(20.0f, 260.0f, GLUT_BITMAP_TIMES_ROMAN_24, "Because You Set ...");
-
-
 	glGenTextures(1,texture);
-	const float Margin{ 10.0 };
-	const float SquareWidth{ 250.0 };
-	float stripBottomY{ 40 };
-	float stripTopY{ 250 };
-	bool first(true);
-
-	// create 1st row
-	createSquares(Margin, SquareWidth, stripTopY - Margin, stripBottomY + Margin,0, trendingMovieIter);
-	stripBottomY = stripTopY + Margin;
-	stripTopY += 220;
-
-	// create 2nd row
-	createSquares(Margin, SquareWidth, stripTopY - Margin, stripBottomY + Margin + 40,1, personalizeCuratedMoviesIter);
-	stripBottomY = stripTopY + Margin;
-	stripTopY += 220;
-
-	// create 3rd row
-	createSquares(Margin, SquareWidth, stripTopY - Margin, stripBottomY + Margin + 40,2, becauseYouSetMoviesIter );
-	stripBottomY = stripTopY + Margin;
-	stripTopY += 220;
-
+	drawMovieBoxes();
 	glutSwapBuffers(); // double buffered - swap the front and back buffers.
 	glDeleteTextures(1, texture);
 }
@@ -159,7 +160,13 @@ void display(void)
 void onReshape(int newWidth, int newHeight)
 {
 	// ignore new width and height
-	glutReshapeWindow(WIDTH, HEIGHT);
+	//glutReshapeWindow(WIDTH, HEIGHT);
+	WIDTH = newWidth;
+	HEIGHT = newHeight;
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	draw = true;
+	display();
 
 }
 
@@ -185,68 +192,110 @@ void keyInput(unsigned char key, int x, int y)
    }
 }
 
+void printSelectedMovieInfo()
+{
+	cout << "You selected:" << endl;
+	cout << moviesMap[SelectedMovie.first].categoryName() << endl;
+	auto moviesList_ptr = moviesMap[SelectedMovie.first];
+	cout << "\t" << moviesList_ptr.at(SelectedMovie.second)->title() << endl;
+	cout << endl;
+
+}
+
 /*
 /** @brief Callback routine for non-ASCII key entry
  ** processing arrow keys
  **/
 void specialKeyInput(int key, int x, int y)
 {
-   switch (key) {
-	   case GLUT_KEY_UP:
-		   CurrPosition.first++;
-		   break;
-
-	   case GLUT_KEY_DOWN:
-		   CurrPosition.first--;
-		   break;
-
-	   case GLUT_KEY_LEFT:
-		   CurrPosition.second--;
-		   break;
-
-	   case GLUT_KEY_RIGHT:
-		   CurrPosition.second++;
-		   break;
-
-	   default:
-		   break;
-   }// end case switch
-
-    // validate Columns
-	if (CurrPosition.second >= (int)moviesGrid[0].size()  || CurrPosition.second < 0) {
-		CurrPosition.second = 0;
+	static bool first(true);
+	if (first) {
+		first = false;
+		SelectedMovie = std::make_pair(0, 0);
+		printSelectedMovieInfo();
+		return;
 	}
-	// validate rows
-	if (CurrPosition.first >= (int)moviesGrid.size()  || CurrPosition.first < 0) {
-		CurrPosition.first = 0;
+	int row = SelectedMovie.first;
+	int col = SelectedMovie.second;
+	switch (key) {
+	case GLUT_KEY_UP:
+		if (row >= 0 && row+1 < moviesMap.size())
+			row++;
+		break;
+
+	case GLUT_KEY_DOWN:
+		if (row-1 < moviesMap.size() && row-1 >= 0)
+			row--;
+		break;
+
+	case GLUT_KEY_LEFT:
+		if (moviesMap[row].isIndexValid(col - 1) && !moviesMap[row][col]->isFirstItemOnViewPort()) {
+			col--;
+
+		}
+		break;
+
+	case GLUT_KEY_RIGHT:
+		if (moviesMap[row].isIndexValid(col + 1)) {
+			if (moviesMap[row][col]->isLastItemOnViewPort()) {
+				moviesMap[row][col]->setIsFirstItemOnViewPort(false);
+				moviesMap[row][col+3]->setIsFirstItemOnViewPort(true);
+				moviesMap[row][col+3]->setIsFirstItemOnViewPort(true);
+
+			}
+			else {
+			col++;
+			}
+		}
+		break;
 	}
 
-	static bool firstCall{ true };
-	if (firstCall) {
-		firstCall = false;
-		CurrPosition = { 0,0 };
+
+	if (SelectedMovie.second != col || SelectedMovie.first != row) {
+		SelectedMovie = { row,col };
+		printSelectedMovieInfo();
 	}
-	cout << "You selected:\t";
-	cout << moviesGrid[CurrPosition.first][CurrPosition.second].get()->title() << endl;
+
 }
 
 
 /** @brief main function **/
 int main(int argc, char** argv)
 {
+	cout << "It is Loading..." << endl;
 	JsonParser json_parser;
-	const string trendigRefId{ "25b87551-fd19-421a-be0f-b7f2eea978b3" };
-	json_parser.readByRefId(trendigRefId);
-	json_parser.getMovieSet(trendingMovieMap);
-	trendingMovieIter = trendingMovieMap["TrendingSet"].begin();
+	// get all refIds from home url
+	auto refIdsSet = json_parser.getRefIds();
+	int index{ 0 };
+	//const int rowMargin{ 20 };
+	//int rowStart = rowMargin;
+	for (auto refId : refIdsSet) {
+	//	if ((rowStart + SquareSize.second) >= HEIGHT)
+	//		break;
+		moviesMap[index] = json_parser.readByRefId(refId);
+		index++;
+	//	rowStart += SquareSize.second;
+	}
 
-	const string personalizedCuratedRefId{ "f506622c-4f75-4f87-bafe-3e08a4433914" }; json_parser.readByRefId(personalizedCuratedRefId); json_parser.getMovieSet(personalizedCuratedMap);
-	personalizeCuratedMoviesIter = personalizedCuratedMap["PersonalizedCuratedSet"].begin();
+	// clear the window
+	cout << string(100, '\n');
 
-	const string becauseYouSetRefId{ "bd1bfb9a-bbf7-43a0-ac5e-3e3889d7224d" };
-	json_parser.readByRefId(becauseYouSetRefId);
-	json_parser.getMovieSet(becauseYouSetMap);
-	becauseYouSetMoviesIter = becauseYouSetMap["editorial"].begin();
+#ifdef DEBUG
+	// print content of moviesMap into terminal
+	for (auto containerPair : moviesMap) {
+		cout << "-------------------------------------------" << endl;
+		cout << "  " << containerPair.second.categoryName() << endl;
+		auto movieList = containerPair.second;
+		for (auto col = 0; col < movieList.movieCounts(); col++) {
+			cout << "\t" << movieList.at(col)->title() << endl;
+		}
+	}
+#endif // DEBUG
+
+	// load images corresponding to the number of grids in viewport
+
+
+
 
 	glutInit(&argc, argv);	// initializes GLUT
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);		// enbale double buffered mode.
@@ -254,16 +303,15 @@ int main(int argc, char** argv)
 	glutInitWindowPosition(100, 100);						    	// position the window's initial top-left corner.
 	glutCreateWindow("Disney Plus");								// create main window
 
-	glMatrixMode(GL_MODELVIEW);										// setup viewing projection
+	glMatrixMode(GL_PROJECTION);										// setup viewing projection
 	glLoadIdentity();												// start with identity matrix
 	glOrtho(0.0, WIDTH, 0.0, HEIGHT, -1.0, 1.0);				    // set clipping area of 2D orthographic view
 	//glutMouseFunc(onMouse);										    // registers mouse callback function.
 	glutKeyboardFunc(keyInput);								        // registers keyboard event
 	glutSpecialFunc(specialKeyInput);							    // registers function keys.
-	glutReshapeFunc(onReshape);										// registers reshape callback function.
+//	glutReshapeFunc(onReshape);										// registers reshape callback function.
 	glutDisplayFunc(display);								    	// registers display callback function.
 	glutMainLoop();									         		// infinite main loop
 
 	return EXIT_SUCCESS;
 }
-
