@@ -5,14 +5,14 @@ Disney Streaming Services - Connected Device Native Client Engineering
 * ------------------ Mouse input -- for debug. 
 * ------------------ Similar to a remote control -- up/down/left/right/enter/back/etc      
 * Layout 
-* ------ for simplicity, creates 4 * 4 layout 
+* ------ for simplicity, creates n * n grids based on the screen widh & height
 * ------ it can be multiple rows of data
 * ------ grids can scale up to fill the entire screen
 * 
 * Special Notes
 * ----------------- can dynamically populate the 'ref' sets as they come into view
-* ----------------- Allow interaction or selection of a tile------------------------------------------------ (coming soon)
-* ----------------- Incorporate transition or visual aesthetics--------------------------------------------- (coming soon)
+* ----------------- Allow interaction or selection of a tile-------------------------------------------(coming soon)
+* ----------------- Incorporate transition or visual aesthetics---------------------------------------(coming soon)
 * ----------------- Resize is disabled for demo 
 
 
@@ -28,7 +28,7 @@ Disney Streaming Services - Connected Device Native Client Engineering
 * stb
 
 # Building Application in Windows
-* download DSS_NCP_TAK_HOME_EXERCISE_V5
+* download DSS_NCP_TAK_HOME_EXERCISE_V5_improved
 * Open The Project in Microsft Visual C++ 
 * Build and run
 
