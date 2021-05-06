@@ -30,9 +30,11 @@
 #pragma comment(lib,"advapi32.lib")
 
 #include "Movie.h"
+#include "MovieItem.h"
 
 using std::unordered_map;
 using std::unordered_set;
+using std::vector;
 using std::string;
 
 /*
@@ -43,24 +45,20 @@ class JsonParser
 {
 public:
 
-	typedef unordered_map<string, unordered_set<std::shared_ptr<Movie>>> MovieContainer;
+	typedef unordered_map<int, MovieItem> MovieContainer;
 
 	/* @brief default construct, sets default json url to M_urlLink */
 	JsonParser();
 
 	/** @brief read json file from url by refId **/
-	bool readByRefId(const string& refId);
+	MovieItem readByRefId(const string& refId);
 
 	/** @brief read json file from home url **/
-	bool readDefault();
+	MovieContainer readDefault();
 
 	/** @brief  read default json file and appends refId to refIdSet **/
-	void  getRefIds(unordered_set<string>& refIdSet);
+	unordered_set<string>  getRefIds();
 
-	/** @brief read each movie from json file then appends to movieSet **/
-	void getMovieSet(MovieContainer & movieMap);
-
-	Json::Value root() { return M_root; }
 private:
 
 	enum class  Mode {default, refId};
@@ -81,9 +79,7 @@ private:
 	bool M_read();
 
 	/** @brief helper function -> iterates throug MovieItems and append each to MovieMap **/
-	void M_populateMovieSet(const string & contentClassStr,
-							const Json::Value & movieItems,
-							MovieContainer& movieMap);
+	MovieItem M_populateMovieItem(const Json::Value& jsonMovieItems);
 
 };
 
