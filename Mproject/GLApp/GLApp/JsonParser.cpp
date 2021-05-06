@@ -19,16 +19,26 @@ JsonParser::JsonParser()
 }
 
 /** @brief read json file from url by refId **/
-bool JsonParser::readByRefId(const string& refId)
+MovieItem JsonParser::readByRefId(const string& refId)
 {
 	M_mode = Mode::refId;
 	M_urlLink = M_refUrl + refId + ".json";
-	return M_read();
+	if (!M_read())
+		return false;
+
+	auto subtreeVal = M_root["data"].getMemberNames().front();
+	auto movieSetsubtree = M_root["data"][subtreeVal];
+	return M_populateMovieItem(movieSetsubtree);
+
+
+
 }
 
- /** @brief  read default json file and appends refId to refIdSet **/
-void JsonParser::getRefIds(unordered_set<string>& refIdSet)
+ /** @brief  read default json file and appends refId to refIdSet**/
+unordered_set<string> JsonParser::getRefIds()
+
 {
+	unordered_set<string> refIdSet{};
 	if (M_mode == Mode::default &&  M_read()) {
 		auto containers = M_root["data"]["StandardCollection"]["containers"];
 		auto iter = containers.begin();
@@ -38,42 +48,31 @@ void JsonParser::getRefIds(unordered_set<string>& refIdSet)
 				refIdSet.insert(refId.asString());
 		}// end for loop.
 	}// end if
+
+	return refIdSet;
 }
+
 
 /** @brief read json file from url by refId 
  * you must call getRefIds to get refId before calling this function 
- */
-bool JsonParser::readDefault()
+ */JsonParser::MovieContainer JsonParser::readDefault()
 {
 	M_mode = Mode::default;
 	M_urlLink = M_homeUrl;
-	return M_read();
+	if (!M_read()) {
+		std::cout << "JSONPARSER::READ::FAILED" << std::endl;
+		return {};
+	}
+
+	auto movieContainersList = M_root["data"]["StandardCollection"]["containers"];
+	MovieContainer moviesMap{};
+	for (int i = 0; i < movieContainersList.size(); i++) {
+		auto movieSetSubtree = movieContainersList[i]["set"];
+		moviesMap[i] = M_populateMovieItem(movieSetSubtree);
+	}
+	return moviesMap;
 }
 
-
-/** @brief read each movie from json file then appends to movieSet **/
-void JsonParser::getMovieSet(MovieContainer & movieMap)
-{
-	// get movies in default mode
-	if (M_mode == Mode::default) {
-		auto movieContainersList = M_root["data"]["StandardCollection"]["containers"];
-		for (auto collection : movieContainersList) {
-			auto movieSet = collection["set"];
-			auto contentClassStr = movieSet["contentClass"].asString();
-			std::cout << contentClassStr << std::endl;
-			auto movieItems = movieSet["items"];
-			M_populateMovieSet(contentClassStr, movieItems, movieMap);
-		}// end for loop.
-
-	} else { // get movies in refId mode
-		auto subtreeVal = M_root["data"].getMemberNames().front();
-		auto subtree = M_root["data"][subtreeVal];
-		auto contentClassStr = subtree["contentClass"].asString();
-		auto movieItems = subtree["items"];
-		M_populateMovieSet(contentClassStr, movieItems, movieMap);
-	}// end else statement
-
-}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -120,12 +119,13 @@ bool JsonParser::M_read()
 
 
 /** @brief helper function -> iterates throug MovieItems and append each to MovieMap **/
-void JsonParser::M_populateMovieSet(const string & contentClassStr, 
-									const Json::Value & movieItems,
-									MovieContainer& movieMap) 
+MovieItem JsonParser::M_populateMovieItem( const Json::Value & movieSetSubtree)
 {
+	const string movieSetCategoryName = movieSetSubtree["text"]["title"]["full"]["set"]["default"]["content"].asString();
+	auto jsonMovieItems = movieSetSubtree["items"];
+	MovieItem movieItem(movieSetCategoryName);
 	// create movie object
-	for (auto item : movieItems) {
+	for (auto item : jsonMovieItems) {
 		// create movie object.
 		auto imageTileSubtree = item["image"]["tile"];
 		auto tileFirstMember = imageTileSubtree.getMemberNames().front();
@@ -142,8 +142,9 @@ void JsonParser::M_populateMovieSet(const string & contentClassStr,
 		auto movieLanguage = fullTitleSubtree[firstMemberStr]["default"]["language"].asString();
 		auto movieSourceEntity = fullTitleSubtree[firstMemberStr]["default"]["sourceEntity"].asString();
 
-		auto movieObj = std::make_shared<Movie>(movieTitle, movieLanguage, movieSourceEntity, movieImageUrl);
-		movieMap[contentClassStr].insert(movieObj);
+		auto movie_ptr = std::make_shared<Movie>(movieTitle, movieLanguage, movieSourceEntity, movieImageUrl);
+		movieItem.insertMovie(movie_ptr);
 	}// end for loop
+	return movieItem;
 
 }
