@@ -267,14 +267,14 @@ int main(int argc, char** argv)
 	// get all refIds from home url
 	auto refIdsSet = json_parser.getRefIds();
 	int index{ 0 };
-	//const int rowMargin{ 20 };
-	//int rowStart = rowMargin;
+	const int rowMargin{ 20 };
+	int rowStart = rowMargin;
 	for (auto refId : refIdsSet) {
-	//	if ((rowStart + SquareSize.second) >= HEIGHT)
-	//		break;
+		if ((rowStart + SquareSize.second) >= HEIGHT)
+			break;
 		moviesMap[index] = json_parser.readByRefId(refId);
 		index++;
-	//	rowStart += SquareSize.second;
+		rowStart += SquareSize.second;
 	}
 
 	// clear the window

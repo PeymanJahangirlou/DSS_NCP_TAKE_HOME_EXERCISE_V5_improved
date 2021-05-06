@@ -18,7 +18,6 @@
 using std::string;
 using std::vector;
 using std::pair;
-using std::optional;
 
 class MovieItem
 {
@@ -36,15 +35,11 @@ public:
 	int movieCounts() const { return M_movieList.size(); }
 
 	// getters.
-	auto row() const    { return M_row; }
-	auto column() const { return M_column; }
 	auto lastMovieOnScreen() { return M_lastMovieIter; }
 	auto firstMovieOnScreen() { return M_lastMovieIter; }
 	auto at(const int col) const { return  M_movieList.at(col); }
 
 	// setters
-	void setRow(const int row)    { M_row = row; }
-	void setColumn(const int col) { M_column = col; }
 	auto  categoryName() const { return M_CategoryName; }
 	void setCategoryName(const string& categoryName) { M_CategoryName = categoryName; }
 
@@ -83,8 +78,6 @@ private:
 	MovieListIterator	M_firstMovieIter; // points to the first element on the screen.
 	MovieList::reverse_iterator M_lastMovieIter;  // points to the last element on the screen.
 	MovieList			M_movieList;
-	optional<int> M_row;
-	optional<int> M_column;
 
 	std::shared_ptr<Movie> M_nextMovie(int col);
 	std::shared_ptr<Movie> M_previousMovie(int col);

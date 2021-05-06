@@ -152,15 +152,17 @@
     <ClCompile Include="JsonParser.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Movie.cpp" />
+    <ClCompile Include="MovieItem.cpp" />
     <ClCompile Include="stb.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ExternalLibraries\JSONCPP\dist\json\json-forwards.h" />
     <ClInclude Include="..\..\ExternalLibraries\JSONCPP\dist\json\json.h" />
-    <ClInclude Include="MovieImage.hpp" />
     <ClInclude Include="JsonParser.h" />
     <ClInclude Include="Movie.h" />
+    <ClInclude Include="MovieImage.hpp" />
+    <ClInclude Include="MovieItem.h" />
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
