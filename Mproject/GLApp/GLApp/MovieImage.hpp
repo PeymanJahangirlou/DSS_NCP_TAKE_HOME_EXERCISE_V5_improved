@@ -18,10 +18,7 @@ public:
 	MovieImage( unsigned char* movieImage,
 				const int image_width,
 				const int image_height)
-			:  M_imageWidth(image_width), M_imageHeight(image_height)
-	{
-		M_movieImage = movieImage;
-	}
+			:  M_imageWidth(image_width), M_imageHeight(image_height),M_movieImage(movieImage) { }
 
 	~MovieImage() { if (M_movieImage) delete M_movieImage; }
 

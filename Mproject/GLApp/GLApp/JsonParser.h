@@ -17,6 +17,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
+#include <fstream>
 
 #include <json\json.h>
 
@@ -29,6 +30,7 @@
 #pragma comment(lib,"Crypt32.lib")
 #pragma comment(lib,"advapi32.lib")
 
+#include "sdb_image.h"
 #include "Movie.h"
 #include "MovieItem.h"
 
@@ -36,6 +38,7 @@ using std::unordered_map;
 using std::unordered_set;
 using std::vector;
 using std::string;
+using std::ostream;
 
 /*
  *  Simple Json parser class which reads from json file
@@ -59,6 +62,7 @@ public:
 	/** @brief  read default json file and appends refId to refIdSet **/
 	unordered_set<string>  getRefIds();
 
+
 private:
 
 	enum class  Mode {default, refId};
@@ -81,7 +85,31 @@ private:
 	/** @brief helper function -> iterates throug MovieItems and append each to MovieMap **/
 	MovieItem M_populateMovieItem(const Json::Value& jsonMovieItems);
 
+
+	/////////////////////////////// Utility Helper Functions /////////////////////////////////////
+
+	/** @brief sets up curl to download image from provided imgUrl **/
+	CURLcode setUpCurlToDownloadImage(const string& imgUrl, ostream& os, long timeout = 30);
+
+	/** @brief download movie image from provided imgUrl to solution directory **/
+	bool  downloadMovieImage(const string& imgUrl);
+
+	/** @brief load image from directory
+     ** @return MovieImage pointer
+     **/
+	std::shared_ptr<MovieImage> loadImageFromDirectory(const string& imgPath);
+
+	/** @brief helper function -> saves loaded image to solution direction **/
+	static size_t M_curlSaveImgToFile(void* buffer, size_t size, size_t nmemb, void* userp);
+
+
+	/** @brief helper method to download image from imgUrl then construct MovieImage object
+	 ** @return MovieImage object
+	 **/
+	std::shared_ptr<MovieImage> createMovieObject(const std::string& imgUrl);
+
 };
+
 
 
 #endif

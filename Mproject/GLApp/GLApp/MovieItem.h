@@ -1,3 +1,6 @@
+#ifndef MovieItem_H
+#define MovieItem_H
+
 /*
  * Disney  DSS-NCP Take Home Exercise v5
  *
@@ -30,60 +33,29 @@ public:
 	MovieItem(const string& catergoryName = {}, const MovieList& movieList = {});
 	~MovieItem();
 
-
 	// returns movieCounts;
 	int movieCounts() const { return M_movieList.size(); }
 
 	// getters.
-	auto lastMovieOnScreen() { return M_lastMovieIter; }
-	auto firstMovieOnScreen() { return M_lastMovieIter; }
 	auto at(const int col) const { return  M_movieList.at(col); }
 
 	// setters
 	auto  categoryName() const { return M_CategoryName; }
 	void setCategoryName(const string& categoryName) { M_CategoryName = categoryName; }
 
-	// next & previous Movie 
-	auto nextMovie(const int col)		{ return M_nextMovie(col); }
-	auto previousMovie(const int col)   { return M_previousMovie(col); }
-
-	const auto nextMovie(const int col) const
-	{ return (const_cast<MovieItem*>(this))->M_nextMovie(col); }
-	const auto previousMovie(const int col) const
-	{ return (const_cast<MovieItem*>(this))->M_previousMovie(col); }
-
-	// movie list iterators.
-	auto nextMovie(MovieListIterator pos)		{ return M_nextMovie(pos); }
-	auto previousMovie(MovieListIterator pos)   { return M_previousMovie(pos); }
-
-	auto end() { return M_movieList.end(); }
-	auto begin() { return M_movieList.begin(); }
-
-
 	/** @insert a new movie into movie list **/
 	void insertMovie(std::shared_ptr<Movie> movie_ptr);
+
+	/** @brief validate M_movieList index **/
+	bool isIndexValid(const int index) const;
 
 	/** operator overloading **/
 	std::shared_ptr<Movie> operator[] (const int index);
 
-	bool isIndexValid(const int index) const;
-
-
-
-
-
 private:
-
-	string M_CategoryName;
-	MovieListIterator	M_firstMovieIter; // points to the first element on the screen.
-	MovieList::reverse_iterator M_lastMovieIter;  // points to the last element on the screen.
 	MovieList			M_movieList;
-
-	std::shared_ptr<Movie> M_nextMovie(int col);
-	std::shared_ptr<Movie> M_previousMovie(int col);
-	MovieListIterator	   M_nextMovie(MovieListIterator pos);
-	MovieListIterator	   M_previousMovie(MovieListIterator pos);
-
-	
+	string				M_CategoryName;
 	
 };
+
+#endif

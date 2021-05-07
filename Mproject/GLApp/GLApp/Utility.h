@@ -23,32 +23,29 @@
 
 #include "sdb_image.h"
 #include "MovieImage.hpp"
+#include "MovieItem.h"
+#include "JsonParser.h"
+#include "Movie.h"
 
 using std::string;
 using std::ostream;
-
+using std::cout;
+using std::endl;
 
 class Utility
 {
 public:
 
-	/** @brief helper function -> saves loaded image from we to solution direction **/
-	static size_t M_curlSaveImgToFile(void* buffer, size_t size, size_t nmemb, void* userp);
-
-	/** @brief sets up curl to download image from provided imgUrl **/
-	static CURLcode downloadMovieImage(const string& imgUrl, ostream& os, long timeout = 30);
-
-	/** @brief download movie image from provided imgUrl to solution directory **/
-	static bool  downloadMovieImage(const string& imgUrl);
-
-	/** @brief load image from directory
-     * @return MovieImage pointer
-     */
-	static std::shared_ptr<MovieImage> loadImageFromDirectory(const string& imgPath);
 
 
+	/*@brief displays selected movie title on terminal */
+	static void printSelectedMovieInfo(JsonParser::MovieContainer& moviesMap, const std::pair<int, int> selectedMoviePos);
 
+	/*@brief clears terminal screen*/
+	inline static void clearTerminalScreen() { std::cout << string(200, '\n'); }
 
+	/* @brief display loading message while load from json file **/
+	inline static void displayMessage(const string & msg) { std::cout << msg << std::endl; }
 };
 
 #endif // !Utility_H

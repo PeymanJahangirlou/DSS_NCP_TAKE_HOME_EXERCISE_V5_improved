@@ -23,6 +23,8 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <memory>
+#include <optional>
 
 #include  "sdb_image.h"
 #include "JsonParser.h"
@@ -32,56 +34,33 @@
 using namespace std;
 
 // Global variables
-int WIDTH = 1020;
+int WIDTH  = 1020;
 int HEIGHT = 800;
-pair<int, int> SelectedMovie; // sets to moviesGrid[0][0];
-
-unsigned int texture[1];
-JsonParser::MovieContainer moviesGrid;
-
-typedef unordered_set<std::shared_ptr<Movie>>::iterator MovieSetIterator;
-JsonParser::MovieContainer trendingMovieMap{};
-JsonParser::MovieContainer personalizedCuratedMap{};
-JsonParser::MovieContainer becauseYouSetMap{};
-MovieSetIterator trendingMovieIter;
-MovieSetIterator personalizeCuratedMoviesIter;
-MovieSetIterator  becauseYouSetMoviesIter;
-
+pair<int, int> selectedMoviePos;
 JsonParser::MovieContainer moviesMap{};
+GLdouble NCP = 1.0f;     // near clipping planes distance.
+GLdouble FCP = 20000.0f; // far clipping planes distance.
 
 /** @brief sets up texture **/
-void setUpTexture(std::shared_ptr<MovieImage> movieImage_ptr)
+std::optional<GLuint> getTexture(std::shared_ptr<MovieImage> movieImage_ptr)
 {
-   glBindTexture(GL_TEXTURE_2D, texture[0]); 
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-			   movieImage_ptr->width(),
-			   movieImage_ptr->height(), 0,
-	           GL_RGB, GL_UNSIGNED_BYTE,
-		       movieImage_ptr->image());
-	glEnable(GL_TEXTURE_2D);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	if (!movieImage_ptr)
+		return std::optional<GLuint>();
+
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+				 movieImage_ptr->width(),
+				 movieImage_ptr->height(),
+				 0, GL_RGB, GL_UNSIGNED_BYTE,
+				 movieImage_ptr->image());
+
+   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+   return texture;
 }
 
-/** @brief download image from web then load texture **/
-void loadTexture(const std::string & imgUrl)
-{
-	if (!Utility::downloadMovieImage(imgUrl)) {
-		cout << "LOASTEXTURE::Utility::downloadMovieImage() Failed\n" << endl;
-		return;
-	}
-   const string imgPath{ "movieImage.jpg" };
-   auto movieImage_ptr = Utility::loadImageFromDirectory(imgPath);
-   if (!movieImage_ptr) {
-		cout << "LOASTEXTURE::Utility::loadImageFromDirectory() Failed\n" << endl;
-		return;
-   }
-   setUpTexture(movieImage_ptr);
-   movieImage_ptr.reset();
-}
 
 /** @brief draw text on the screen **/
 void renderBitmapString(float x, float y, void* font, const string& text)
@@ -92,82 +71,70 @@ void renderBitmapString(float x, float y, void* font, const string& text)
 		glutBitmapCharacter(font, ch);
 }
 
-const pair<float, float> SquareSize = std::make_pair(200.0, 170.0);
-void drawMovieBoxes()
-{
-	const int colMargin{ 10 };
-	const int rowMargin{ 20 };
-	int col_start = colMargin;
-	int row_start = rowMargin;
-	float col_space{ 50 };
-	float rowExtraSpace{ 40 };
-	int row = 0;
-	int col = 0;
-	for (; col_start < WIDTH; col_start += SquareSize.first) {
-		if ((col_start + SquareSize.first) >= WIDTH) {
-			moviesMap[row][col-1]->setIsLastItemOnViewPort(true);
-			row_start += SquareSize.second;
-			row++;
-			col_start = colMargin;
-			col = 0;
 
-		}
-		if ((row_start + SquareSize.second) >= HEIGHT)
-			break;
-		if (col_start == colMargin) {
-			renderBitmapString( col_start,
-								row_start + SquareSize.second + 20,
-								GLUT_BITMAP_TIMES_ROMAN_24,
-								moviesMap[row].categoryName());
-		}
-		if (col == 0)
-			moviesMap[row][col]->setIsFirstItemOnViewPort(true);
-
-		loadTexture(moviesMap[row][col]->imgUrl());
-		glBegin(GL_POLYGON);
-		glTexCoord2f(0.0, 0.0);
-		glVertex2f((float)col_start + colMargin, (float)row_start + rowMargin + rowExtraSpace );
-		glTexCoord2f(1.0, 0.0);
-		glVertex2f((float)col_start + SquareSize.first, (float)row_start + rowMargin + rowExtraSpace);
-		glTexCoord2f(1.0, 1.0);
-		glVertex2f((float)col_start + SquareSize.first, (float)row_start + SquareSize.second );
-		glTexCoord2f(0.0, 1.0);
-		glVertex2f((float)col_start + colMargin, (float)row_start + SquareSize.second );
-		glEnd();
-		col++;
-	}
-}
-
-
-
-static bool draw{ true }; // draw function gets called once
-/** @brief display function for GLUT  **/
+/** @brief glut display callback function  **/
 void display(void)
 {
-	if (!draw)
-		return;
-
-	draw = false;
-    glClearColor(0.0f, 0.05f, 0.13f,1.0f);         // disney plus background
+    glClearColor(0.0f, 0.05f, 0.13f,1.0f);         // disney+  background
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-	glGenTextures(1,texture);
-	drawMovieBoxes();
-	glutSwapBuffers(); // double buffered - swap the front and back buffers.
-	glDeleteTextures(1, texture);
+	glDisable(GL_DEPTH_TEST);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0, WIDTH, 0.0, HEIGHT, -1.0, 1.0);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	
+	// start drawing objects on screen
+	const int SquareHeight{ 180 };
+	const int SquareWidth { 250 };
+	const int ColMargin{ 10 };
+	const int RowMargin{ 50 };
+	const int ColSpace{ 50 };
+	const int RowExtraSpace{ 40 };
+	glEnable(GL_TEXTURE_2D);
+	for (int row = 0; row < moviesMap.size(); row++) {
+		float y = RowMargin + row * SquareHeight;
+		float x = ColMargin;
+		renderBitmapString(x+10, y+10+SquareHeight, GLUT_BITMAP_TIMES_ROMAN_24, moviesMap[row].categoryName());
+		for (int col = 0; col < moviesMap[row].movieCounts(); col++) {
+			auto movieTexture = getTexture(moviesMap[row][col]->image());
+			if (movieTexture.has_value()) {
+				glBindTexture(GL_TEXTURE_2D, movieTexture.value());
+				glBegin(GL_POLYGON);
+				glTexCoord2f(0, 1);
+				glVertex2f(x+ColMargin, y+RowMargin);		// left bottom
+				glTexCoord2f(1, 1);
+				glVertex2f(x+SquareWidth, y + RowMargin); // right bottom
+				glTexCoord2f(1, 0);
+				glVertex2f(x+SquareWidth , y+SquareHeight); // right top
+				glTexCoord2f(0, 0);
+				glVertex2f(x+ColMargin , y+SquareHeight); // left top
+				glEnd();
+			}// end if statement
+			x += SquareWidth;
+		}// end inner for loop
+	}// end outter for loop
+
+	glutSwapBuffers();
+	Sleep(1000 / 60);
 }
 
 /** @brief resize callback  funciton **/
 void onReshape(int newWidth, int newHeight)
 {
-	// ignore new width and height
-	//glutReshapeWindow(WIDTH, HEIGHT);
+	if (newHeight == 0)
+		return;
+
+	glViewport(0, 0, newWidth, newHeight); // sets a new viewport rectangle
 	WIDTH = newWidth;
 	HEIGHT = newHeight;
+	glMatrixMode(GL_PROJECTION); // specifies which matrix is current matrix
+	glLoadIdentity();
+	gluPerspective(60.0f, (float)WIDTH / (float)HEIGHT, NCP, FCP);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	draw = true;
-	display();
-
 }
 
 /*@brief Mouse input processing routin. for debug */
@@ -175,13 +142,13 @@ void onMouse(int buttonId, int buttonState, int x, int y)
 {
 	if(buttonState != GLUT_DOWN)
 		return;
+
 	cout << "mouse coordinates -- (x,y): " << "(" << x << ", " << y << ")" << endl;
 }
 
 /* @ Keyboard input processing routine. work in progress **/
 void keyInput(unsigned char key, int x, int y)
 {
-   std::cout << "x: " << x << "y: " << y << std::endl;
    switch(key) 
    {
       case 27: // esc key
@@ -192,17 +159,7 @@ void keyInput(unsigned char key, int x, int y)
    }
 }
 
-void printSelectedMovieInfo()
-{
-	cout << "You selected:" << endl;
-	cout << moviesMap[SelectedMovie.first].categoryName() << endl;
-	auto moviesList_ptr = moviesMap[SelectedMovie.first];
-	cout << "\t" << moviesList_ptr.at(SelectedMovie.second)->title() << endl;
-	cout << endl;
 
-}
-
-/*
 /** @brief Callback routine for non-ASCII key entry
  ** processing arrow keys
  **/
@@ -211,12 +168,12 @@ void specialKeyInput(int key, int x, int y)
 	static bool first(true);
 	if (first) {
 		first = false;
-		SelectedMovie = std::make_pair(0, 0);
-		printSelectedMovieInfo();
+		selectedMoviePos = std::make_pair(0, 0);
+		Utility::printSelectedMovieInfo(moviesMap,selectedMoviePos);
 		return;
 	}
-	int row = SelectedMovie.first;
-	int col = SelectedMovie.second;
+	int row = selectedMoviePos.first;
+	int col = selectedMoviePos.second;
 	switch (key) {
 	case GLUT_KEY_UP:
 		if (row >= 0 && row+1 < moviesMap.size())
@@ -229,89 +186,68 @@ void specialKeyInput(int key, int x, int y)
 		break;
 
 	case GLUT_KEY_LEFT:
-		if (moviesMap[row].isIndexValid(col - 1) && !moviesMap[row][col]->isFirstItemOnViewPort()) {
+		if (moviesMap[row].isIndexValid(col - 1)
+			&& !moviesMap[row][col]->isFirstItemOnViewPort()) {
 			col--;
 
 		}
 		break;
 
 	case GLUT_KEY_RIGHT:
-		if (moviesMap[row].isIndexValid(col + 1)) {
-			if (moviesMap[row][col]->isLastItemOnViewPort()) {
-				moviesMap[row][col]->setIsFirstItemOnViewPort(false);
-				moviesMap[row][col+3]->setIsFirstItemOnViewPort(true);
-				moviesMap[row][col+3]->setIsFirstItemOnViewPort(true);
-
-			}
-			else {
-			col++;
-			}
+		if (moviesMap[row].isIndexValid(col + 1)
+			&& !moviesMap[row][col]->isLastItemOnViewPort()) {
+				col++;
 		}
 		break;
+	}// end switch
+
+
+	if (selectedMoviePos.second != col || selectedMoviePos.first != row) {
+		selectedMoviePos = { row,col };
+		Utility::printSelectedMovieInfo(moviesMap,selectedMoviePos);
 	}
-
-
-	if (SelectedMovie.second != col || SelectedMovie.first != row) {
-		SelectedMovie = { row,col };
-		printSelectedMovieInfo();
-	}
-
 }
 
+void initGlutAttrib()
+{
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_NORMALIZE);
+	glDisable(GL_CULL_FACE);
+	glShadeModel(GL_SMOOTH);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // select a polygon rasteriztion mode
+	glEnable(GL_SMOOTH);
 
+}
 /** @brief main function **/
 int main(int argc, char** argv)
 {
-	cout << "It is Loading..." << endl;
+	Utility::displayMessage("Downloading Reference Ids... Please Wait!");
 	JsonParser json_parser;
 	// get all refIds from home url
 	auto refIdsSet = json_parser.getRefIds();
+
+	Utility::displayMessage("Downloading Movies... Please Wait!");
 	int index{ 0 };
-	const int rowMargin{ 20 };
-	int rowStart = rowMargin;
 	for (auto refId : refIdsSet) {
-		if ((rowStart + SquareSize.second) >= HEIGHT)
-			break;
 		moviesMap[index] = json_parser.readByRefId(refId);
 		index++;
-		rowStart += SquareSize.second;
-	}
+	}// end for loop
+	Utility::clearTerminalScreen();
 
-	// clear the window
-	cout << string(100, '\n');
-
-#ifdef DEBUG
-	// print content of moviesMap into terminal
-	for (auto containerPair : moviesMap) {
-		cout << "-------------------------------------------" << endl;
-		cout << "  " << containerPair.second.categoryName() << endl;
-		auto movieList = containerPair.second;
-		for (auto col = 0; col < movieList.movieCounts(); col++) {
-			cout << "\t" << movieList.at(col)->title() << endl;
-		}
-	}
-#endif // DEBUG
-
-	// load images corresponding to the number of grids in viewport
-
-
-
-
+	cout << "setting up glut environment... Please Wait!" << endl;
 	glutInit(&argc, argv);	// initializes GLUT
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);		// enbale double buffered mode.
 	glutInitWindowSize(WIDTH, HEIGHT)						;		// specifies window size
-	glutInitWindowPosition(100, 100);						    	// position the window's initial top-left corner.
+	glutInitWindowPosition(0, 0);						    	// position the window's initial top-left corner.
 	glutCreateWindow("Disney Plus");								// create main window
-
-	glMatrixMode(GL_PROJECTION);										// setup viewing projection
-	glLoadIdentity();												// start with identity matrix
-	glOrtho(0.0, WIDTH, 0.0, HEIGHT, -1.0, 1.0);				    // set clipping area of 2D orthographic view
-	//glutMouseFunc(onMouse);										    // registers mouse callback function.
+	initGlutAttrib();
 	glutKeyboardFunc(keyInput);								        // registers keyboard event
-	glutSpecialFunc(specialKeyInput);							    // registers function keys.
-//	glutReshapeFunc(onReshape);										// registers reshape callback function.
+//	glutSpecialFunc(specialKeyInput);							    // registers function keys.
+    glutReshapeFunc(onReshape);									// registers reshape callback function.
 	glutDisplayFunc(display);								    	// registers display callback function.
 	glutMainLoop();									         		// infinite main loop
 
 	return EXIT_SUCCESS;
 }
+
+//////////////////////////////////// End Main Function /////////////////////////////////////

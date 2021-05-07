@@ -11,12 +11,12 @@
 Movie::Movie(   const std::string& title,
 			    const std::string& language,
 				const std::string& sourceEntity,
-				const std::string& imgUrl)
+				std::shared_ptr <MovieImage> imagePtr)
 {
 	M_title = title;
 	M_language = language;
 	M_sourceEntity = sourceEntity;
-	M_imgUrl = imgUrl;
+	M_imagePtr = imagePtr;
 	M_isFirstItemOnViewPort = false;
 	M_isLastItemOnViewPort  = false;
 }
@@ -27,7 +27,7 @@ Movie::Movie(const Movie& other)
 	M_title = other.M_title;
 	M_language = other.M_language;
 	M_sourceEntity = other.M_sourceEntity;
-	M_imgUrl = other.M_imgUrl;
+	M_imagePtr = other.M_imagePtr;
 	M_isFirstItemOnViewPort = other.M_isFirstItemOnViewPort;
 	M_isLastItemOnViewPort  = other.M_isLastItemOnViewPort;
 }
