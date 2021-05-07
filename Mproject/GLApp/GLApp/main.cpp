@@ -34,12 +34,19 @@
 using namespace std;
 
 // Global variables
-int WIDTH  = 1020;
-int HEIGHT = 800;
-pair<int, int> selectedMoviePos;
+int					       WIDTH	       = 1020;
+int						   HEIGHT		   = 750;
+int						   LastXCoordinate = -1;
+int						   LastYCoordinate = -1;
+int						   CurrentRow      = -1;
+const int				   SquareHeight    = 180;
+const int				   SquareWidth     = 250;
+GLdouble			       NCP			   = 1.0f;      // near clipping planes distance.
+GLdouble				   FCP			   = 20000.0f;  // far clipping planes distance.
+
+pair<int, int>			   selectedMoviePos;
 JsonParser::MovieContainer moviesMap{};
-GLdouble NCP = 1.0f;     // near clipping planes distance.
-GLdouble FCP = 20000.0f; // far clipping planes distance.
+vector <int>		       allTextures{};
 
 /** @brief sets up texture **/
 std::optional<GLuint> getTexture(std::shared_ptr<MovieImage> movieImage_ptr)
@@ -75,6 +82,7 @@ void renderBitmapString(float x, float y, void* font, const string& text)
 /** @brief glut display callback function  **/
 void display(void)
 {
+		
     glClearColor(0.0f, 0.05f, 0.13f,1.0f);         // disney+  background
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
@@ -95,24 +103,26 @@ void display(void)
 	const int RowExtraSpace{ 40 };
 	glEnable(GL_TEXTURE_2D);
 	for (int row = 0; row < moviesMap.size(); row++) {
-		float y = RowMargin + row * SquareHeight;
+		float y =  row * SquareHeight;
 		float x = ColMargin;
 		renderBitmapString(x+10, y+10+SquareHeight, GLUT_BITMAP_TIMES_ROMAN_24, moviesMap[row].categoryName());
 		for (int col = 0; col < moviesMap[row].movieCounts(); col++) {
 			auto movieTexture = getTexture(moviesMap[row][col]->image());
 			if (movieTexture.has_value()) {
 				glBindTexture(GL_TEXTURE_2D, movieTexture.value());
+				allTextures.push_back(0);
 				glBegin(GL_POLYGON);
 				glTexCoord2f(0, 1);
-				glVertex2f(x+ColMargin, y+RowMargin);		// left bottom
+				glVertex2f(x+ColMargin+allTextures[row], y+RowMargin);		// left bottom
 				glTexCoord2f(1, 1);
-				glVertex2f(x+SquareWidth, y + RowMargin); // right bottom
+				glVertex2f(x+SquareWidth+allTextures[row], y + RowMargin); // right bottom
 				glTexCoord2f(1, 0);
-				glVertex2f(x+SquareWidth , y+SquareHeight); // right top
+				glVertex2f(x+SquareWidth+allTextures[row] , y+SquareHeight); // right top
 				glTexCoord2f(0, 0);
-				glVertex2f(x+ColMargin , y+SquareHeight); // left top
+				glVertex2f(x+ColMargin+allTextures[row] , y+SquareHeight); // left top
 				glEnd();
 			}// end if statement
+			glDeleteTextures(1, &movieTexture.value());
 			x += SquareWidth;
 		}// end inner for loop
 	}// end outter for loop
@@ -130,20 +140,33 @@ void onReshape(int newWidth, int newHeight)
 	glViewport(0, 0, newWidth, newHeight); // sets a new viewport rectangle
 	WIDTH = newWidth;
 	HEIGHT = newHeight;
-	glMatrixMode(GL_PROJECTION); // specifies which matrix is current matrix
-	glLoadIdentity();
-	gluPerspective(60.0f, (float)WIDTH / (float)HEIGHT, NCP, FCP);
+	glMatrixMode(GL_PROJECTION);	// specifies which matrix is current matrix
+	glLoadIdentity();				// reset matrix
+	// sets correct perspective
+	gluPerspective(60.0f, (float)WIDTH/(float)HEIGHT, NCP, FCP);
+	// get back to modelview
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 }
 
-/*@brief Mouse input processing routin. for debug */
-void onMouse(int buttonId, int buttonState, int x, int y) 
+void onMouseButton(int button, int state, int x, int y)
 {
-	if(buttonState != GLUT_DOWN)
-		return;
+	LastXCoordinate = x;
+	LastYCoordinate = HEIGHT - y;
+	CurrentRow = LastYCoordinate / SquareHeight;
+	if (CurrentRow >= moviesMap.size())
+		CurrentRow = -1;
+}
 
-	cout << "mouse coordinates -- (x,y): " << "(" << x << ", " << y << ")" << endl;
+/*@brief glut Mouse Motion callback function **/
+void onMouseMotion(int x, int y) 
+{
+	int XDelta = x - LastXCoordinate;
+	if (CurrentRow != -1) {
+		allTextures[CurrentRow] += XDelta;
+	}
+	LastXCoordinate = x;
+	LastYCoordinate = HEIGHT - y;
 }
 
 /* @ Keyboard input processing routine. work in progress **/
@@ -157,55 +180,6 @@ void keyInput(unsigned char key, int x, int y)
       default:
          break;
    }
-}
-
-
-/** @brief Callback routine for non-ASCII key entry
- ** processing arrow keys
- **/
-void specialKeyInput(int key, int x, int y)
-{
-	static bool first(true);
-	if (first) {
-		first = false;
-		selectedMoviePos = std::make_pair(0, 0);
-		Utility::printSelectedMovieInfo(moviesMap,selectedMoviePos);
-		return;
-	}
-	int row = selectedMoviePos.first;
-	int col = selectedMoviePos.second;
-	switch (key) {
-	case GLUT_KEY_UP:
-		if (row >= 0 && row+1 < moviesMap.size())
-			row++;
-		break;
-
-	case GLUT_KEY_DOWN:
-		if (row-1 < moviesMap.size() && row-1 >= 0)
-			row--;
-		break;
-
-	case GLUT_KEY_LEFT:
-		if (moviesMap[row].isIndexValid(col - 1)
-			&& !moviesMap[row][col]->isFirstItemOnViewPort()) {
-			col--;
-
-		}
-		break;
-
-	case GLUT_KEY_RIGHT:
-		if (moviesMap[row].isIndexValid(col + 1)
-			&& !moviesMap[row][col]->isLastItemOnViewPort()) {
-				col++;
-		}
-		break;
-	}// end switch
-
-
-	if (selectedMoviePos.second != col || selectedMoviePos.first != row) {
-		selectedMoviePos = { row,col };
-		Utility::printSelectedMovieInfo(moviesMap,selectedMoviePos);
-	}
 }
 
 void initGlutAttrib()
@@ -234,7 +208,6 @@ int main(int argc, char** argv)
 	}// end for loop
 	Utility::clearTerminalScreen();
 
-	cout << "setting up glut environment... Please Wait!" << endl;
 	glutInit(&argc, argv);	// initializes GLUT
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);		// enbale double buffered mode.
 	glutInitWindowSize(WIDTH, HEIGHT)						;		// specifies window size
@@ -242,9 +215,13 @@ int main(int argc, char** argv)
 	glutCreateWindow("Disney Plus");								// create main window
 	initGlutAttrib();
 	glutKeyboardFunc(keyInput);								        // registers keyboard event
-//	glutSpecialFunc(specialKeyInput);							    // registers function keys.
-    glutReshapeFunc(onReshape);									// registers reshape callback function.
+
+	glutMouseFunc(onMouseButton);
+	glutMotionFunc(onMouseMotion);
+
 	glutDisplayFunc(display);								    	// registers display callback function.
+	glutIdleFunc(display);
+    glutReshapeFunc(onReshape);									// registers reshape callback function.
 	glutMainLoop();									         		// infinite main loop
 
 	return EXIT_SUCCESS;
