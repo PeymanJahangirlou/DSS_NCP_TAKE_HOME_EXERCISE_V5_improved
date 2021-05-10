@@ -1,4 +1,5 @@
 
+
 /*
  * Disney  DSS-NCP Take Home Exercise v5
  *
@@ -29,6 +30,7 @@
 #pragma comment(lib,"Wldap32.lib")
 #pragma comment(lib,"Crypt32.lib")
 #pragma comment(lib,"advapi32.lib")
+#pragma comment(lib, "Urlmon.lib")
 
 #include "sdb_image.h"
 #include "Movie.h"
@@ -73,6 +75,7 @@ private:
 	const string M_homeUrl{ "https://cd-static.bamgrid.com/dp-117731241344/home.json" };
 	const string M_refUrl{ "https://cd-static.bamgrid.com/dp-117731241344/sets/" };
 
+
 	/** @brief  curl call back function **/
 	static size_t M_curlWriteToString(void* buffer, size_t size, size_t nmemb, void* userp);
 
@@ -89,7 +92,7 @@ private:
 	/////////////////////////////// Utility Helper Functions /////////////////////////////////////
 
 	/** @brief sets up curl to download image from provided imgUrl **/
-	CURLcode setUpCurlToDownloadImage(const string& imgUrl, ostream& os, long timeout = 30);
+	CURLcode setUpCurlToDownloadImage(const string& imgUrl, ostream& os);
 
 	/** @brief download movie image from provided imgUrl to solution directory **/
 	bool  downloadMovieImage(const string& imgUrl);

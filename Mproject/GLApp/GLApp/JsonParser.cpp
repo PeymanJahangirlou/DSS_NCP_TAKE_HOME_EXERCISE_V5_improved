@@ -1,3 +1,4 @@
+
 /*
  * Disney  DSS-NCP Take Home Exercise v5
  *
@@ -99,6 +100,7 @@ bool JsonParser::M_read()
 	CURLcode errorCode(CURLE_FAILED_INIT);
 	if (curl_ptr) {
 		if (   CURLE_OK == (curl_easy_setopt(curl_ptr, CURLOPT_URL, M_urlLink.c_str()))
+			&& CURLE_OK ==  (curl_easy_setopt(curl_ptr,CURLOPT_MAX_RECV_SPEED_LARGE))
 			&& CURLE_OK == (curl_easy_setopt(curl_ptr, CURLOPT_WRITEFUNCTION, M_curlWriteToString))
 			&& CURLE_OK == (curl_easy_setopt(curl_ptr, CURLOPT_WRITEDATA, &strBuffer))) {
 				 errorCode = curl_easy_perform(curl_ptr);
@@ -163,6 +165,7 @@ bool  JsonParser::downloadMovieImage(const string& imgUrl)
 		return false;
 
 	return true;
+
 }
 
 /** @brief load image from directory
@@ -178,7 +181,7 @@ std::shared_ptr<MovieImage> JsonParser::loadImageFromDirectory(const string& img
 
 
 /** @brief sets up curl to download image from provided imgUrl **/
-CURLcode JsonParser::setUpCurlToDownloadImage (const string & imgUrl, ostream & os, long timeout)
+CURLcode JsonParser::setUpCurlToDownloadImage (const string & imgUrl, ostream & os)
 {
 	curl_global_init(CURL_GLOBAL_ALL);
 	CURLcode code(CURLE_FAILED_INIT);
@@ -186,13 +189,11 @@ CURLcode JsonParser::setUpCurlToDownloadImage (const string & imgUrl, ostream & 
 
 	if (curl_ptr)
 	{
-		if (   CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_WRITEFUNCTION, &M_curlSaveImgToFile))
-			&& CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_NOPROGRESS, 1L))
-			&& CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_FOLLOWLOCATION, 1L))
-			&& CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_FILE, &os))
-			&& CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_TIMEOUT, timeout))
-			&& CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_URL, imgUrl.c_str())))
-		{
+		if (   CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_URL, imgUrl.c_str()))
+			&& CURLE_OK ==  (curl_easy_setopt(curl_ptr,CURLOPT_MAX_RECV_SPEED_LARGE))
+			&& CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_WRITEFUNCTION, &M_curlSaveImgToFile))
+			&& CURLE_OK == (code = curl_easy_setopt(curl_ptr, CURLOPT_FILE, &os))) {
+
 			code = curl_easy_perform(curl_ptr);
 		}
 		curl_easy_cleanup(curl_ptr);

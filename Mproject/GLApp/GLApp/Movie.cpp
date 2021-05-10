@@ -17,8 +17,6 @@ Movie::Movie(   const std::string& title,
 	M_language = language;
 	M_sourceEntity = sourceEntity;
 	M_imagePtr = imagePtr;
-	M_isFirstItemOnViewPort = false;
-	M_isLastItemOnViewPort  = false;
 }
 
 /* @brief copy constructor */
@@ -28,6 +26,4 @@ Movie::Movie(const Movie& other)
 	M_language = other.M_language;
 	M_sourceEntity = other.M_sourceEntity;
 	M_imagePtr = other.M_imagePtr;
-	M_isFirstItemOnViewPort = other.M_isFirstItemOnViewPort;
-	M_isLastItemOnViewPort  = other.M_isLastItemOnViewPort;
 }

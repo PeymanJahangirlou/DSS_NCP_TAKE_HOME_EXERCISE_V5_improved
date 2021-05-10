@@ -34,8 +34,8 @@ public:
 
 private:
 	unsigned char * M_movieImage;
-	int M_imageWidth;
-	int M_imageHeight;
+	int			    M_imageWidth;
+	int		    	M_imageHeight;
 };
 
 #endif
