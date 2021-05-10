@@ -17,6 +17,7 @@ Movie::Movie(   const std::string& title,
 	M_language = language;
 	M_sourceEntity = sourceEntity;
 	M_imagePtr = imagePtr;
+
 }
 
 /* @brief copy constructor */

@@ -1,5 +1,6 @@
 
 
+
 /*
  * Disney  DSS-NCP Take Home Exercise v5
  *
@@ -38,7 +39,6 @@ int						   LastXCoordinate  = -1;
 int						   LastYCoordinate  = -1;
 int						   CurrentRow       = -1;
 int						   CurrentCol       = -1;
-int						   SkippMoving      = 0;
 const float                MovieGridWidth   = 120;
 const float				   MovieGridHeigth  = 200;
 GLdouble			       NCP			    = 1.0f;      // near clipping planes distance.
@@ -111,15 +111,12 @@ void drawMovieGrid()
 			glEnable(GL_TEXTURE_2D);
 			glPushMatrix();
 			glTranslatef(newX, newY, 0.0f); // multiply the current matrix by a translation one
-			int currText = (int)allTextures[row] / MovieGridWidth;
+			int currText = allTextures[row] / MovieGridWidth;
 			// shrink down the selected movie
-			if (CurrentRow == row && CurrentCol == col) { // && SkippMoving == 0 ) {
+			if (CurrentRow == row && CurrentCol == col)
 				glScalef(0.50f, 0.50f, 0.0f); 
-			}
-			else {
+			else 
 				glScalef(0.9f, 0.7f, 1.0f); 
-
-			}
 			glTranslatef(-newX, -newY, 0.0f);
 			glBindTexture(GL_TEXTURE_2D, movieTexture);
 			glBegin(GL_QUADS);
@@ -248,71 +245,55 @@ void keyInput(unsigned char key, int x, int y)
 /*@brief processes arrow keys */
 void onSpecialKey(int key, int x, int y)
 {
-	int runner{ 0 };
+	if (CurrentCol == -1 || CurrentRow == -1) {
+		CurrentCol = 0;
+		CurrentRow = 0;
+		return;
+	}
+
 	switch (key) {
 	case GLUT_KEY_UP:
-		if (CurrentRow == -1) {
-			CurrentRow = 0;
-		}
-		else {
+	{
 		CurrentRow++;
 		if (CurrentRow >= moviesMap.size())
 			CurrentRow = moviesMap.size() - 1;
-		}
+
+		CurrentCol = (moviesMap[CurrentRow].lastSelected() == -1) ? 0 : moviesMap[CurrentRow].lastSelected();
+	}
 		break;
 	case GLUT_KEY_DOWN:
-		if (CurrentRow == -1) {
-			CurrentRow = moviesMap.size() - 1;
-		}
-		else {
-			CurrentRow--;
-			if (CurrentRow < 0)
-				CurrentRow = 0;
-		}
+	{
+		CurrentRow--;
+		if (CurrentRow < 0)
+			CurrentRow = 0;
+
+		CurrentCol = (moviesMap[CurrentRow].lastSelected() == -1) ? 0 : moviesMap[CurrentRow].lastSelected();
+	}
 		break;
 	case GLUT_KEY_RIGHT:
-		if (CurrentRow != -1 ) {
-			allTextures[CurrentRow] += 30;
-			if (CurrentCol == -1) {
-				CurrentCol = 0;
+	{
+		if ( CurrentCol < moviesMap[CurrentRow].movieCounts() - 1) {
+			if (CurrentCol < moviesMap[CurrentRow].movieCounts() - 5) {
+				CurrentCol++;
+				moviesMap[CurrentRow].setLastSelected(CurrentCol);
+				allTextures[CurrentRow] += MovieGridWidth;
 			}
 			else {
-				if (SkippMoving > 0 && SkippMoving < 3) {
-					SkippMoving--;
-				}
-				else if (CurrentCol < moviesMap[CurrentRow].movieCounts()) {
-					CurrentCol++;
-					SkippMoving += 2;
-
-				}
-				// make it stop at the end right
-				int left = -int(moviesMap[CurrentRow].movieCounts()) * MovieGridWidth;
-				if (left > -allTextures[CurrentRow] - 5 * MovieGridWidth ) {
-					allTextures[CurrentRow] -= 30;
-				}
+				moviesMap[CurrentRow].setLastSelected(CurrentCol);
+				CurrentCol++;
 			}
 		}
-
+	}
 		break;
 	case GLUT_KEY_LEFT:
-		if (CurrentRow != -1 ) {
-			allTextures[CurrentRow] -= 30;
-			if (CurrentCol == -1) {
-				CurrentCol = 0;
-			}
-			else {
-				if (SkippMoving > 0 && SkippMoving < 3) {
-					SkippMoving--;
-				}
-				else if (CurrentCol < moviesMap[CurrentRow].movieCounts()) {
-					CurrentCol--;
-					SkippMoving += 2;
-				}
-				// make it stop at the first column in each row
-				if (allTextures[CurrentRow]  < 0 )
-					allTextures[CurrentRow]  = 0;
-			}
+		if (CurrentCol > 0 ) {
+			CurrentCol--;
+			allTextures[CurrentRow] -= MovieGridWidth;
+			moviesMap[CurrentRow].setLastSelected(CurrentCol);
 		}
+		// make it stop at the first column in each row
+		if (allTextures[CurrentRow]  < 0 )
+			allTextures[CurrentRow]  = 0;
 		break;
 	}
 }

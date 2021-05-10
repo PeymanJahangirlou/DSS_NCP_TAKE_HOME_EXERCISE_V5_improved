@@ -38,10 +38,12 @@ public:
 
 	// getters.
 	auto at(const int col) const { return  M_movieList.at(col); }
+	int lastSelected() const { return M_lastSelected; }
 
 	// setters
 	auto  categoryName() const { return M_CategoryName; }
 	void setCategoryName(const string& categoryName) { M_CategoryName = categoryName; }
+	void setLastSelected(const int col) { M_lastSelected = col; }
 
 	/** @insert a new movie into movie list **/
 	void insertMovie(std::shared_ptr<Movie> movie_ptr);
@@ -55,6 +57,7 @@ public:
 private:
 	MovieList			M_movieList;
 	string				M_CategoryName;
+	int					M_lastSelected{ -1 };
 	
 };
 
