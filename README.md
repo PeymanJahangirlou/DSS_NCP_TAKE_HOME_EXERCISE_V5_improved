@@ -11,9 +11,18 @@ Disney Streaming Services - Connected Device Native Client Engineering
 * 
 * Special Notes
 * ----------------- can dynamically populate the 'ref' sets as they come into view
-* ----------------- Allow interaction or selection of a tile-------------------------------------------(coming soon)
-* ----------------- Incorporate transition or visual aesthetics---------------------------------------(coming soon)
+* ----------------- Allow interaction or selection of a tile
+* ----------------- Incorporate transition or visual aesthetics
 * ----------------- Resize is disabled for demo 
+
+# Navigation Keys
+*---------------- Left   scroll left
+*---------------- Right  scroll left
+*---------------- Up     scroll Up
+*---------------- Down   scroll Down
+*---------------- Enter  displays selected movie in a new window
+*---------------- back   returns to main window
+*---------------- esc    exit the application
 
 
 # A note on backward-compatibility
