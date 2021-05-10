@@ -17,7 +17,7 @@ Disney Streaming Services - Connected Device Native Client Engineering
 
 # Navigation Keys
 * ---------------- Left   scroll left
-* ---------------- Right  scroll left
+* ---------------- Right  scroll right
 * ---------------- Up     scroll Up
 * ---------------- Down   scroll Down
 * ---------------- Enter  displays selected movie in a new window
